@@ -1,0 +1,59 @@
+{
+  "network":
+            {"model_name": "example",
+            "num_classes":6,
+            "network":"resnet",
+            "labels_offset":0,
+            "use_deconv": false
+            },
+  "input":
+          {"train_file_path": "../data/train_image/",
+          "train_label_path":"../data/train_mask/",
+            "test_file_path": "../data/test_image/",
+          "test_label_path":"../data/test_mask/",
+          "buffer":500,
+          "out_shape":[512,512],
+          "data_format": "NHWC",
+          "mean": [14.2,14.2,14.2],
+          "data_parallel_threads":8,
+          "batch_size": 4,
+            "num_samples":4200,
+          "is_train":true
+          },
+  "train":
+          {"num_epochs":500,
+          "num_iter_per_epoch":10,
+          "optimizer": "adam",
+            "adam_beta1":0.9,
+            "adam_beta2":0.999,
+          "momentum" : 0.9,
+          "learning_rate": 0.0001,
+          "weight_decay":1e-6,
+          "moving_average_decay": null,
+          "use_batch":true,
+          "max_number_of_steps":50000,
+          "num_epochs_per_decay":100,
+          "learning_rate_decay_type":"exponential",
+          "learning_rate_decay_factor":0.94,
+          "end_learning_rate":0.0001,
+          "clip_gradient_norm":0
+          },
+  "summary":
+          {"train_dir":"../logs/u_net_3_19",
+            "log_every_n_steps":10,
+            "save_summaries_secs":60,
+            "save_checkpoint_secs":900
+          },
+  "deploy":
+          {"num_clone":2,
+            "gpu_memory_fraction":0.98
+          },
+  "finetune":
+          {"checkpoint_path":null,
+          "checkpoint_model_scope": null,
+          "checkpoint_exclude_scopes":null,
+          "trainable_scopes":null,
+          "ignore_missing_vars":true,
+          "trace_every_n_steps":null
+          }
+}
