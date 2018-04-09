@@ -20,12 +20,13 @@ class ConvertFromInts(object):
 
 
 class Resize(object):
-    def __init__(self, size):
-        self.size = tuple(size)
+    def __init__(self, img_size, mask_size):
+        self.img_size = tuple(img_size)
+        self.mask_size = tuple(mask_size)
 
     def __call__(self, image, mask):
-        image = cv2.resize(image, self.size, interpolation=cv2.INTER_CUBIC)
-        mask  = cv2.resize(mask, self.size)
+        image = cv2.resize(image, self.img_size, interpolation=cv2.INTER_CUBIC)
+        mask  = cv2.resize(mask, self.mask_size)
         return image.astype(np.float32), mask
 
 
@@ -167,17 +168,18 @@ class Augmentation(object):
     def __init__(self, config, is_train=True):
         self.mean = config.mean
         self.is_train = is_train
-        self.size = config.out_shape
+        self.img_size = config.img_out_shape
+        self.mask_size = config.mask_out_shape
         self.augment_train = Compose([
             ConvertFromInts(),
-            Resize(self.size),
+            Resize(self.img_size, self.mask_size),
             PhotometricDistort(),
             RandomMirror(),
             #SubtractMeans(self.mean)
         ])
         self.augment_test = Compose([
             ConvertFromInts(),
-            Resize(self.size),
+            Resize(self.img_size, self.mask_size),
             #SubtractMeans(self.mean)
         ])
 

@@ -19,8 +19,9 @@ def arg_scope(weight_decay=0.0005, normalizer_fn=None, normalizer_params=None,
 
 
 def encoder(inputs,
+            reuse=False,
             scope='encoder'):
-    with tf.variable_scope(scope, 'encoder', [inputs]) as sc:
+    with tf.variable_scope(scope, 'encoder', [inputs], reuse=reuse) as sc:
         end_points_collection = sc.original_name_scope + '_end_points'
         with slim.arg_scope([slim.conv2d, slim.max_pool2d]):
             end_points = {}

@@ -8,17 +8,17 @@
               "loss_type": "dice"
             },
   "input":
-          {"train_file_path": "../data/aapm_new/img/",
-          "train_label_path":"../data/aapm_new/mask/",
-            "eval_file_path": "../data/aapm_new/img/",
-          "eval_label_path":"../data/aapm_new/mask/",
-            "test_file_path":"../data/aapm_new/test/img/",
+          {"train_file_path": "../data/aapm/img/",
+          "train_label_path":"../data/aapm/mask/",
+            "eval_file_path": "../data/aapm/img/",
+          "eval_label_path":"../data/aapm/mask/",
+            "test_file_path":"../data/aapm/img/",
           "buffer":500,
           "img_out_shape":[512, 512, 1],
             "mask_out_shape":[256, 256],
           "data_format": "NHWC",
           "mean": [14.2,14.2,14.2],
-          "data_parallel_threads":8,
+          "data_parallel_threads":1,
           "batch_size": 8,
             "batch_size_test": 8,
             "num_samples":4200,
@@ -42,8 +42,8 @@
           "clip_gradient_norm":0
           },
   "summary":
-          {"train_dir":"../logs/u_net_resnet_v1_331",
-            "test_dir":"../logs/u_net_resnet_v1_331_test",
+          {"train_dir":"../logs/u_net_resnet_v1_329",
+            "test_dir":"../logs/u_net_resnet_v1_329_test",
             "log_every_n_steps":10,
             "save_summaries_secs":300,
             "save_checkpoint_secs":300
@@ -53,8 +53,8 @@
             "gpu_memory_fraction":0.95
           },
   "finetune":
-          {"checkpoint_path":"../logs/u_net_resnet_v1_331/model.ckpt-260653",
-            "eval_checkpoint_dir":"../logs/u_net_resnet_v1_331",
+          {"checkpoint_path":null,
+            "eval_checkpoint_dir":"../logs/u_net_resnet_v1_329",
           "checkpoint_model_scope": null,
           "checkpoint_exclude_scopes":null,
           "trainable_scopes":null,

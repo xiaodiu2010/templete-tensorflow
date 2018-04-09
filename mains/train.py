@@ -36,20 +36,21 @@ def main(_):
 
         # Create global_step
         with tf.device(deploy_config.variables_device()):
-            global_step = tf.Variable(0,trainable=False, name='global_step')
+            global_step = tf.Variable(0, trainable=False, name='global_step')
 
         # select model and build net
         net = u_net.Unet(config)
 
         # create batch dataset
         with tf.device(deploy_config.inputs_device()):
-            data_train = DataGenerator(config.input)
-            x_train, y_train = data_train.get_train_data()
-            x_train.set_shape([None, config.input.out_shape[0], config.input.out_shape[1], 3])
-            y_train.set_shape([None, config.input.out_shape[0], config.input.out_shape[1]])
+            data = DataGenerator(config.input)
+            x_train, y_train = data.get_train_data()
+            x_train = tf.expand_dims(x_train, -1)
+            x_train.set_shape([None, config.input.img_out_shape[0], config.input.img_out_shape[1], config.input.img_out_shape[2]])
+            y_train.set_shape([None, config.input.mask_out_shape[0], config.input.mask_out_shape[1]])
             y_train = tf.cast(y_train, tf.int32)
             y_train_hot = tf.one_hot(y_train, depth=config.network.num_classes, axis=-1)
-            print(y_train_hot)
+
             batch_queue = [x_train, y_train_hot]
 
 
@@ -58,11 +59,11 @@ def main(_):
         # =================================================================== #
         def clone_fn(batch_queue):
             x_train, y_train_hot = batch_queue
+            print(x_train)
             print(y_train_hot)
             f_score, end_points = net.net(x_train)
-
             # Add loss function.
-            net.loss(f_score, y_train_hot)
+            net.loss(f_score, y_train_hot, type=config.network.loss_type)
 
             return f_score, end_points, x_train, y_train_hot
 
@@ -76,24 +77,27 @@ def main(_):
         for loss in tf.get_collection('EXTRA_LOSSES', first_clone_scope):
             summaries.add(tf.summary.scalar(loss.op.name, loss))
 
-        f_score, _, x_train_img, y_train_hot_img = clones[0].outputs
-        f_score_img = tf.expand_dims(tf.cast(tf.argmax(f_score, axis=-1), tf.float32)*50., -1)
-        y_train_img = tf.argmax(y_train_hot_img, axis=-1)
-        summaries.add(tf.summary.image("Original_image", x_train_img, 2))
-        summaries.add(tf.summary.image("Ground_truth", tf.expand_dims(tf.cast(y_train_img, tf.float32)*50., -1), 2))
-        summaries.add(tf.summary.image("Predict_", f_score_img, 2))
+        f_score, _, x_train, y_train_hot = clones[0].outputs
+        f_score_img = tf.expand_dims(tf.cast(tf.argmax(f_score, axis=-1), tf.float32), -1)
+        y_train_img = tf.argmax(y_train_hot, axis=-1)
+        summaries.add(tf.summary.image("Images/Original_image", x_train, 2))
+        summaries.add(tf.summary.image("Images/Ground_truth", tf.expand_dims(tf.cast(y_train_img, tf.float32), -1), 2))
+        summaries.add(tf.summary.image("Images/Predict_", f_score_img, 2))
 
         ## add precision and recall
-        f_score = tf.cast(f_score > 0.5, tf.float32)
-        pred = tf.reduce_sum(f_score * y_train_hot_img, axis=(0, 1, 2))
+        f_score = tf.cast(tf.argmax(f_score, -1), tf.int32)
+        f_score = tf.one_hot(f_score, depth=config.network.num_classes, axis=-1)
+        pred = tf.reduce_sum(f_score * y_train_hot, axis=(0, 1, 2))
         all_pred = tf.reduce_sum(f_score, axis=(0, 1, 2)) + 1e-5
-        all_true = tf.reduce_sum(f_score, axis=(0, 1, 2)) + 1e-5
+        all_true = tf.reduce_sum(y_train_hot, axis=(0, 1, 2)) + 1e-5
         recall = pred/all_pred
         prec = pred/all_true
-        with tf.name_scope('evaluation'):
-            for c in range(config.network.num_classes):
-                summaries.add(tf.summary.scalar('{}th_class_recall'.format(c), recall[c]))
-                summaries.add(tf.summary.scalar('{}th_class_precision'.format(c), prec[c]))
+        dice = pred*2 / (all_true+all_pred)
+        with tf.variable_scope('evaluation'):
+            for i in range(config.network.num_classes):
+                summaries.add(tf.summary.scalar('{}th_class_precision'.format(i), prec[i]))
+                summaries.add(tf.summary.scalar('{}th_class_recall'.format(i), recall[i]))
+                summaries.add(tf.summary.scalar('{}th_class_dice'.format(i), dice[i]))
 
         #################################
         # Configure the moving averages #
@@ -163,7 +167,7 @@ def main(_):
                     init_fn=tf_utils.get_init_fn(config),
                     ready_op=None,
                     ready_for_local_init_op=None,
-                    local_init_op=data_train.get_iterator().initializer,
+                    local_init_op=[data.get_iterator().initializer],
                     summary_op=summary_op,
                     saver=saver,
                     copy_from_scaffold=None
